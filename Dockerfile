@@ -14,5 +14,5 @@ EXPOSE 80
 # Simple startup script to avoid some issues observed with container restart
 ADD run-httpd.sh /run-httpd.sh
 RUN chmod -v +x /run-httpd.sh
-COPY src /var/www/html/
+COPY src/index.html /var/www/html/
 CMD ["/run-httpd.sh"]
