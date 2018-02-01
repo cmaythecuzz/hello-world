@@ -1,0 +1,17 @@
+<?php
+/**
+ * @file
+ * Drupal needs this blank file.
+ */
+
+/**
+ * Implements hook_post_features_revert
+ *
+ * @param $component
+ */
+function nyulmc_ood_taxonomy_categories_post_features_revert($component) {
+  $taxonomy = taxonomy_vocabulary_machine_name_load('categories');
+  if ($taxonomy) {
+    taxonomy_vocabulary_delete($taxonomy->vid);
+  }
+}

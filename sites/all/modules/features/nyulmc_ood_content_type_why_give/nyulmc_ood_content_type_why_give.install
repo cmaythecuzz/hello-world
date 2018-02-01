@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * When enabling the Why give feature, we make ensure that the default home
+ * page exists.
+ *
+ * Implements hook_enable
+ */
+function nyulmc_ood_content_type_why_give_enable(){
+  if(!nyulmc_ood_core_node_type_exists("why_give")){
+    nyulmc_ood_content_type_why_give_create_why_give();
+  }
+  drupal_set_message(t("The configuration of the why give page can be accessed " .
+          l(t('here'), 'node/' . nyulmc_ood_core_node_type_exists("why_give") . '/edit')), 'status');
+}
+
+function nyulmc_ood_content_type_why_give_create_why_give(){
+  // Create an Entity
+  $e = entity_create('node', array('type' => 'why_give'));
+  // Specify the author
+  $e->uid = '1';
+  // Create a Entity Wrapper of that new Entity
+  $entity = entity_metadata_wrapper('node',$e);
+
+  // Specify the title
+  $entity->title = 'Why Give to NYU Langone?';
+
+  // Save the node.
+  $entity->save();
+
+  return $e->nid;
+}

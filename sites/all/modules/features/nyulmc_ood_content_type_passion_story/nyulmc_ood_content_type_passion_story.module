@@ -1,0 +1,21 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Passion Story feature.
+ */
+
+include_once 'nyulmc_ood_content_type_passion_story.features.inc';
+
+/**
+ * Implements hook_pre_features_revert().
+ */
+function nyulmc_ood_content_type_passion_story_pre_features_revert($component) {
+
+  // delete all field instances of deleted fields.
+  $entity_type = 'node';
+  $bundle_name = 'passion_story'; // Field collection entity name (for example added to node).
+  $field_name  = 'field_show_donate_module'; // Field added to field_collection entity.
+  if ($instance = field_info_instance($entity_type, $field_name, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+}

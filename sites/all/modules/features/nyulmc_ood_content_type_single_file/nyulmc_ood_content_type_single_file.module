@@ -1,0 +1,47 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Single File feature.
+ */
+
+include_once 'nyulmc_ood_content_type_single_file.features.inc';
+
+/**
+ * Implements hook_node_insert().
+ */
+function nyulmc_ood_content_type_single_file_node_insert($node) {
+  if ($node->type == 'single_file') {
+    _nyulmc_ood_content_type_single_file_message_file_path($node);
+  }
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function nyulmc_ood_content_type_single_file_node_update($node) {
+  if ($node->type == 'single_file') {
+    _nyulmc_ood_content_type_single_file_message_file_path($node);
+  }
+}
+
+/**
+ * @param $node
+ */
+function _nyulmc_ood_content_type_single_file_message_file_path($node) {
+  $file = file_load($node->field_sinlge_file[LANGUAGE_NONE][0]['fid']);
+  $file_parsed = file_uri_target($file->uri);
+  drupal_set_message('The path of the file is files/' . $file_parsed);
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function nyulmc_ood_content_type_single_file_views_pre_render(&$view) {
+  if ($view->name == 'single_files') {
+    foreach ($view->result as $row) {
+      $old_path = $row->field_field_sinlge_file[0]['rendered']['#markup'];
+      $old_path  = parse_url($old_path)['path'];
+      $row->field_field_sinlge_file[0]['rendered']['#markup'] = substr($old_path, 14);
+    }
+  }
+}

@@ -1,0 +1,25 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Events Landing feature.
+ */
+
+include_once 'nyulmc_ood_content_type_events_landing.features.inc';
+
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function nyulmc_ood_content_type_events_landing_form_events_landing_node_form_alter(&$form, &$form_state, $form_id) {
+
+  $singleton_exists = nyulmc_ood_core_node_type_exists('events_landing', $form['nid']['#value']);
+
+  if($singleton_exists){
+
+    drupal_set_message(t('A published Events Landing Page Already Exists. <a href="' . base_path() . 'node/' . $singleton_exists . '/edit">Click here</a> to edit that node.'), 'warning');
+
+    drupal_set_message(t('If you publish a new Events Landing page, the existing version will be unpublished.'), 'warning');
+  }
+}

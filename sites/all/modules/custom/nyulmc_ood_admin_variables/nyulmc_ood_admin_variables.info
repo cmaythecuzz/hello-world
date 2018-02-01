@@ -1,0 +1,4 @@
+name = NYULMC OOD Admin Variables
+description = Mangement of custom variables in the admin.
+core = 7.x
+package = NYULMC

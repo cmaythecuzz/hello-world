@@ -1,0 +1,23 @@
+figure.giving-photo-quote {
+    border: 0px;
+    font-size: 1.2em;
+    background: none;
+}
+
+figure.giving-photo-quote > blockquote > cite {
+    border: 0px;
+    font-style: italic;
+    font-size: .85em;
+    font-weight: lighter;
+}
+
+figure.giving-photo-quote div.figure .giving-quote-photo:before {
+    content: '- Drop Media Here -';
+    margin-left: auto;
+    margin-right: auto;
+    color: red;
+    display: block;
+}
+figure.giving-photo-quote blockquote a.giving-quote-cta {
+    display: block;
+}

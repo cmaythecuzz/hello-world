@@ -1,0 +1,35 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type 175th Anniversary feature.
+ */
+
+include_once 'nyulmc_ood_content_type_175th_anniversary.features.inc';
+
+function nyulmc_ood_content_type_175th_anniversary_form_175th_anniversary_node_form_alter(&$form, &$form_state, $form_id){
+
+  $singlteton_exists = nyulmc_ood_core_node_type_exists('175th_anniversary', $form['nid']['#value']);
+
+  if($singlteton_exists){
+
+    drupal_set_message(t('A published 175th Anniversary page already exists. <a href="' . base_path() . 'node/' . $singlteton_exists . '/edit">Click here</a> to edit that node.'), 'warning');
+
+    drupal_set_message(t('If you publish a new 175th Anniversary page, the existing version will be unpublished.'), 'warning');
+
+  }
+}
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_175th_anniversary_post_features_revert($component) {
+
+  $fields_to_delete = array(
+    'field_175_links_cont_short_desc'
+  );
+
+  // delete all fields that were excluded from the feature.
+  foreach ($fields_to_delete as $field) {
+    nyulmc_ood_core_delete_field_instance("field_collection_item", "field_175_links_content_links", $field);
+  }
+}

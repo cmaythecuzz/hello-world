@@ -1,0 +1,18 @@
+div.nyulmc_callout {
+  background: #ddd;
+  padding: 1em 0 1em 125px;
+  margin: 2em 0;
+}
+.nyulmc_callout > div.nyulmc_image {
+  margin: 0 0 0 -120px;
+  width: 100px;
+  display: inline-block;
+}
+
+.nyulmc_callout > .nyulmc_image > img {
+  max-width: 100%;
+  height: auto;
+}
+.nyulmc_callout div{
+  display: inline-block;
+}

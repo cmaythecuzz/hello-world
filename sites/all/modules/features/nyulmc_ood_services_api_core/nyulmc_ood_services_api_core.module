@@ -1,0 +1,805 @@
+<?php
+
+/**
+ * @file
+ * Code for the NYULMC Services Api Core feature. This is the launch point for
+ * most service requests in the NYULMC Services model.
+ *
+ * This module defines service paths for different entity types, such as nodes
+ * or taxonomy, and then redirects each request to it's corresponding model.
+ * Those entity-specific models live within the resources folder, within this
+ * module. In most cases, you'll want to start there, not here, to address
+ * changes in the services model, particularly so when wiring up new content
+ * types, or their corresponding fields.
+ *
+ * Here, we are mostly altering behavior from the services module, using their
+ * API hooks. Lower down on the page, there might be more interesting functions,
+ * providing general functionality for broad service requests.
+ *
+ * @note
+ *   In this class only, the .services.inc file does not contain normal service
+ *   logic, as found in other module features. Here, it is a generate file by
+ *   features. Any changes you make in that file whill be overwritten when your
+ *   feature is regenerated. So don't do modify it.
+ *
+ *   In this class only, we place all our logic either in this file (.module),
+ *   or in the resources folder.
+ *
+ * @note
+ *    This is a feature module. Parts of it are auto-generated, while parts are
+ *    written by developers. Generally, the .module file (this file) is all
+ *    human code. Any .features modules, generally, are not. In this file,
+ *    the .services.inc file is also auto-generated. So ignore it if you're
+ *    trying to figure out how everything works. Any class files are human-made,
+ *    as are .readme files. Sub folders are also of interest to you.
+ *    So:
+ *
+ * You should care about these files:
+ *
+ * resources/*
+ * nyulmc_services_api_core.module
+ * nyulmc_services_api_core.install
+ * nyulmc_services_api_core.readme
+ * nyulmcServiceHelpers.class.inc
+ * nyulmcServicesImage.class.inc
+ */
+
+include_once 'nyulmc_ood_services_api_core.features.inc';
+
+// Custom NYULMC Services Functionality.
+include_once 'resources/node.nyulmc_ood_services.inc';
+
+// Helper class for processing service requests.
+include_once 'nyulmcServiceHelpers.class.inc';
+
+module_load_include('inc', 'nyulmc_ood_content_type_event', 'nyulmc_ood_content_type_event.services');
+
+
+
+/**
+ * Expose custom service resources.
+ *
+* Here, we are mostly implementing completely custom end points.
+ *
+ * Implements of hook_services_resources().
+ */
+function nyulmc_ood_services_api_core_services_resources() {
+
+  // Our an endpoint for misc variables that do not fall into any content type
+  // model.
+  $api = array(
+    'home_page' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_services_api_core_home_page_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          'help' => 'Retrieves Home page settings for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'why_give' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_services_api_core_why_give_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          'help' => 'Retrieves default Why give settings for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'supporter_landing' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_services_api_core_supporter_landing_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          'help' => 'Retrieves default Supporter Landing page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'explore_funds_config' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_services_api_core_explore_funds_config_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          'help' => 'Retrieves default Funds List for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'ways_to_give_landing' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_services_api_core_ways_to_give_landing_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          'help' => 'Retrieves default Ways to Give page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    '175th_anniversary' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ooc_content_type_175th_anniversary_retrieve_node_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_content_type_175th_anniversary',
+            'name' => 'nyulmc_ood_content_type_175th_anniversary.services',
+          'help' => 'Retrieves default 175th Anniversary page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'vilcek_hall' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_content_type_vilcek_hall_retrieve_node_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_content_type_vilcek_hall',
+            'name' => 'nyulmc_ood_content_type_vilcek_hall.services',
+          'help' => 'Retrieves default Vilcek Hall page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'p2p_landing' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_content_type_p2p_landing_retrieve_node_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_content_type_p2p_landing',
+            'name' => 'nyulmc_ood_content_type_p2p_landing.services',
+          'help' => 'Retrieves default Campaign Landing page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'events_landing' => array(
+      'operations' => array(
+        'index' => array(
+          'callback' => '_nyulmc_ood_content_type_events_landing_retrieve_node_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_content_type_events_landing',
+            'name' => 'nyulmc_ood_content_type_events_landing.services',
+          'help' => 'Retrieves default Events Landing page for the NYULMC - OOD project.',
+          ),
+        ),
+      ),
+    ),
+    'all_funds' => array(
+      'operations' => array(
+        'index' => array(
+          'help' => 'Retrieves All funds for the NYULMC - OOD project.',
+          'callback' => '_nyulmc_ood_services_api_core_node_resource_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          ),
+        ),
+      ),
+    ),
+    'speeches' => array(
+      'operations' => array(
+        'index' => array(
+          'help' => 'Retrieves Event\'s speeches for the NYULMC - OOD project.',
+          'callback' => '_nyulmc_ood_content_type_event_services_list_speeches',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nuylmc_ood_content_type_event',
+            'name' => 'nyulmc_ood_content_type_event.services',
+          ),
+        ),
+      ),
+    ),
+    'events' => array(
+      'operations' => array(
+        'index' => array(
+          'help' => 'Retrieves All events for the NYULMC - OOD project.',
+          'callback' => '_nyulmc_ood_services_api_core_node_resource_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          ),
+        ),
+        'retrieve' => array(
+          'help' => 'Retrieves an event by slug',
+          'callback' => '_nyulmc_ood_services_api_core_event_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          )
+        )
+      ),
+    ),
+    'supporter_message_forms' => array(
+      'operations' => array(
+        'retrieve' => array(
+          'help' => 'Retrieves a supporter message form by slug',
+          'callback' => '_nyulmc_ood_services_api_core_supporter_message_form_retrieve',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          )
+        )
+      ),
+    ),
+    'ways_to_give_child_page' => array(
+        'operations' => array(
+            'retrieve' => array(
+                'help' => 'Retrieves a ways to give child page by slug',
+                'callback' => '_nyulmc_ood_services_api_core_ways_to_give_child_page_retrieve',
+                'access callback' => 'user_access',
+                'access arguments' => array('access content'),
+                'file' => array(
+                    'type' => 'inc',
+                    'module' => 'nyulmc_ood_services_api_core',
+                    'name' => 'node.nyulmc_ood_services',
+                )
+            )
+        ),
+    ),
+    'passion_stories' => array(
+      'operations' => array(
+        'index' => array(
+          'help' => 'Retrieves All Passion Stories for the NYULMC - OOD project.',
+          'callback' => '_nyulmc_ood_services_api_core_node_resource_index',
+          'access callback' => 'user_access',
+          'access arguments' => array('access content'),
+          'file' => array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+          ),
+        ),
+      ),
+    ),
+  );
+  return $api;
+}
+
+
+/**
+ * Alter existing endpoints to expose our own custom logic.
+ *
+ * Here, we alter node and taxonomy endpoints, and replace callbacks to assemble
+ * the response for nodes or taxonomy with our own, custom functions. This sets
+ * up our resources/ folder, with all of our various node resources.
+ *
+ * Why do we do this? Because this allows us to implement our own logic, while
+ * preserving the services module, and maintaining upgradability, should there
+ * be security updates.
+ *
+ * Implements hook_services_resources_alter().
+ *
+ * @param array $resources
+ *   The combined array of resource definitions from hook_services_resources.
+ * @param array $endpoint
+ *   An array describing the endpoint that resources are being built for.
+ */
+function nyulmc_ood_services_api_core_services_resources_alter(&$resources, &$endpoint)
+{
+
+    // Alter the node resource->retrieve to use our custom callback,
+    // and accept additional parameters.
+    if (isset($resources['node'])) {
+
+        $node_retrieve = &$resources['node']['operations']['retrieve'];
+
+        // Change nid to string to allow us to pass a URL instead.
+        $node_retrieve['args'][0]['type'] = 'string';
+
+        // Custom access callback, since we need to translate a passed URL, and
+        // the default resource access callback does not allow for this.
+        $node_retrieve['access callback'] = '_nyulmc_ood_services_api_core_services_node_resource_access';
+
+        // Custom callback to allow us to manipulate the JSON result.
+        $node_retrieve['callback'] = '_nyulmc_ood_services_api_core_node_retrieve';
+
+        // Our callback is found in this file.
+        $node_retrieve['file'] = array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+        );
+
+        // Optional flag to toggle building out references or not.
+        $node_retrieve['args'][] = array(
+            'name' => 'populate_references',
+            'optional' => TRUE,
+            'default value' => false,
+            'type' => 'boolean',
+            'source' => array('param' => 'expand_references'),
+        );
+
+        // Create action on the node resource.
+        $node_create = &$resources['node']['operations']['create'];
+
+        // Custom access callback, since we need to translate a passed URL, and
+        // the default resource access callback does not allow for this.
+        $node_create['access callback'] = '_nyulmc_ood_services_api_core_services_node_resource_access';
+
+        // Override the callback, and allow us to call custom callbacks instead.
+        $node_create['callback'] = '_nyulmc_ood_services_api_core_node_create';
+
+        // Our callback is found in this file.
+        $node_create['file'] = array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+        );
+
+
+        // Update action on the node resource.
+        $node_update = &$resources['node']['operations']['update'];
+
+        // Custom access callback, since we need to translate a passed URL, and
+        // the default resource access callback does not allow for this.
+        $node_update['access callback'] = '_nyulmc_ood_services_api_core_services_node_resource_access';
+
+        // Override the callback, and allow us to call custom callbacks instead.
+        $node_update['callback'] = '_nyulmc_ood_services_api_core_node_update';
+
+        // Our callback is found in this file.
+        $node_update['file'] = array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+        );
+
+
+        // Delete action on the node resource.
+        $node_delete = &$resources['node']['operations']['delete'];
+
+        // Custom access callback, since we need to translate a passed URL, and
+        // the default resource access callback does not allow for this.
+        $node_delete['access callback'] = '_nyulmc_ood_services_api_core_services_node_resource_access';
+
+        // Our callback is found in this file.
+        $node_delete['file'] = array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+        );
+
+
+        // Index action on the node resource.
+        $node_index = &$resources['node']['operations']['index'];
+
+        // Override the callback, and allow us to call custom callbacks instead.
+        $node_index['callback'] = '_nyulmc_ood_services_api_core_node_resource_index';
+
+        // Our callback is found in this file.
+        $node_index['file'] = array(
+            'type' => 'inc',
+            'module' => 'nyulmc_ood_services_api_core',
+            'name' => 'node.nyulmc_ood_services',
+        );
+    }
+
+    // Alter the node resource->retrieve to use our custom callback,
+    // and accept additional parameters.
+    if(isset($resources['all_funds'])){
+
+      //Index action on the all_funds resource.
+      $funds_index = &$resources['all_funds']['operations']['index'];
+
+      // Override the callback, and allow us to call custom callbacks instead.
+      $funds_index['callback'] = '_nyulmc_ood_services_api_core_node_resource_index';
+
+      // Our callback is found in this file.
+      $funds_index['file'] = array(
+        'type' => 'inc',
+        'module' => 'nyulmc_ood_services_api_core',
+        'name' => 'node.nyulmc_ood_services',
+      );
+
+      // Passing args to retrieve all funds
+      $funds_index['args'] = array(
+         array(
+          'name' => 'page',
+          'optional' => true,
+          'source' => array('param' => 'page'),
+          'description' => 'The node id of the fund content',
+          'type' => 'string',
+          'default value' => '0',
+        ),
+        array(
+          'name' => 'fields',
+          'optional' => true,
+          'source' => array('param' => 'fields'),
+          'description' => 'The node id of the fund content',
+          'type' => 'string',
+          'default value' => implode(',', array('nid', 'title', 'language', 'type')),
+        ),
+        array(
+          'name' => 'parameters',
+          'optional' => true,
+          'source' => array('param' => 'parameters'),
+          'description' => 'The node id of the fund content',
+          'type' => 'string',
+          'default value' => array('type' => 'fund'),
+        ),
+        array(
+          'name' => 'page_size',
+          'optional' => true,
+          'source' => array('param' => 'page_size'),
+          'description' => 'The node id of the fund content',
+          'type' => 'string',
+          'default value' => 10000,
+        ),
+      );
+
+    }
+    
+  // Alter the node resource->retrieve to use our custom callback,
+  // and accept additional parameters.
+  if(isset($resources['passion_stories'])){
+
+    //Index action on the passion_stories resource.
+    $passion_stories_index = &$resources['passion_stories']['operations']['index'];
+
+    // Override the callback, and allow us to call custom callbacks instead.
+    $passion_stories_index['callback'] = '_nyulmc_ood_services_api_core_node_resource_index';
+
+    // Our callback is found in this file.
+    $passion_stories_index['file'] = array(
+      'type' => 'inc',
+      'module' => 'nyulmc_ood_services_api_core',
+      'name' => 'node.nyulmc_ood_services',
+    );
+
+    // Passing args to retrieve all funds
+    $passion_stories_index['args'] = array(
+      array(
+        'name' => 'page',
+        'optional' => true,
+        'source' => array('param' => 'page'),
+        'description' => 'The node id of the passion story content',
+        'type' => 'string',
+        'default value' => '0',
+      ),
+      array(
+        'name' => 'fields',
+        'optional' => true,
+        'source' => array('param' => 'fields'),
+        'description' => 'The node id of the passion story content',
+        'type' => 'string',
+        'default value' => implode(',', array('nid', 'title', 'language', 'type')),
+      ),
+      array(
+        'name' => 'parameters',
+        'optional' => true,
+        'source' => array('param' => 'parameters'),
+        'description' => 'The node id of the passion story content',
+        'type' => 'string',
+        'default value' => array('type' => 'passion_story'),
+      ),
+      array(
+        'name' => 'page_size',
+        'optional' => true,
+        'source' => array('param' => 'page_size'),
+        'description' => 'The node id of the passion story content',
+        'type' => 'string',
+        'default value' => 10000,
+      ),
+    );
+
+  }
+
+  // Alter the node resource->retrieve to use our custom callback,
+  // and accept additional parameters.
+  if(isset($resources['events'])){
+
+    //Index action on the events resource.
+    $events_index = &$resources['events']['operations']['index'];
+
+    // Override the callback, and allow us to call custom callbacks instead.
+    $events_index['callback'] = '_nyulmc_ood_services_api_core_events_resource_index';
+
+    // Our callback is found in this file.
+    $events_index['file'] = array(
+      'type' => 'inc',
+      'module' => 'nyulmc_ood_content_type_event',
+      'name' => 'nyulmc_ood_content_type_event.services',
+    );
+
+    // Passing args to retrieve all funds
+    $events_index['args'] = array(
+      array(
+        'name' => 'page',
+        'optional' => true,
+        'source' => array('param' => 'page'),
+        'description' => 'The node id of the event content',
+        'type' => 'string',
+        'default value' => '0',
+      ),
+      array(
+        'name' => 'fields',
+        'optional' => true,
+        'source' => array('param' => 'fields'),
+        'description' => 'The node id of the event content',
+        'type' => 'string',
+        'default value' => implode(',', array('nid', 'title', 'language', 'type')),
+      ),
+      array(
+        'name' => 'parameters',
+        'optional' => true,
+        'source' => array('param' => 'parameters'),
+        'description' => 'The node id of the event content',
+        'type' => 'string',
+        'default value' => array('type' => 'event'),
+      ),
+      array(
+        'name' => 'page_size',
+        'optional' => true,
+        'source' => array('param' => 'page_size'),
+        'description' => 'The node id of the passion story content',
+        'type' => 'string',
+        'default value' => 20,
+      ),
+    );
+
+    $events_retrieve = &$resources['events']['operations']['retrieve'];
+
+    // copy the arguments from node retrieve since this is just a case of it
+    $events_retrieve['args'] = $resources['node']['operations']['retrieve']['args'];
+  }
+
+  if(isset($resources['ways_to_give_child_page'])) {
+
+    $ways_to_give_child_page_retrieve = &$resources['ways_to_give_child_page']['operations']['retrieve'];
+
+    // copy the arguments from node retrieve since this is just a case of it
+    $ways_to_give_child_page_retrieve['args'] = $resources['node']['operations']['retrieve']['args'];
+  }
+
+  if(isset($resources['supporter_message_forms'])) {
+
+    $supporter_message_forms_retrieve = &$resources['supporter_message_forms']['operations']['retrieve'];
+
+    // copy the arguments from node retrieve since this is just a case of it
+    $supporter_message_forms_retrieve['args'] = $resources['node']['operations']['retrieve']['args'];
+  }
+
+  // Increase the absurdly low limit of results we can see.
+  // Ideally, we would disable pagination, but passing a 0 limit will break
+  // the services index query, so this is a less than elegant compromise.
+  variable_set('services_node_index_page_size', 10000);
+
+}
+
+/**
+ * Reorder the hook_services_request_preprocess_alter hooks so that
+ * nyulmc services api core always goes first.
+ *
+ * Implements hook_module_implements_alter()
+ */
+function nyulmc_ood_services_api_core_module_implements_alter(&$implementations, $hook) {
+
+    // If we're triggering node_load,
+    // make sure our version runs after webform_entity's.
+    if ($hook == 'services_request_preprocess_alter') {
+
+        // Find and save our module's implementation, then remove it.
+        $group = $implementations['nyulmc_ood_services_api_core'];
+        unset($implementations['nyulmc_ood_services_api_core']);
+
+        // We'll build a new, parallel list here, and set our hook first.
+        $new_implementation = array();
+        $new_implementation['nyulmc_ood_services_api_core'] = $group;
+
+        // Add each other item from our old list to our new list, in the same order.
+        foreach($implementations AS $key => $value) {
+            if($key !=='services_request_preprocess_alter') {
+                $new_implementation[$key] = $value;
+            }
+        }
+
+        // Load implementations with our newly ordered list.
+        $implementations = $new_implementation;
+    }
+}
+
+/**
+ * Allow arguments to be altered before they are passed to service callback.
+ *
+ * Implements hook_services_request_preprocess_alter()
+ *
+ * @param $controller
+ *   Controller definition
+ * @param $args
+ *   Array of arguments
+ * @param $options
+ *
+ * @see services_controller_execute()
+ * @see services.runtime.inc
+ */
+function nyulmc_ood_services_api_core_services_request_preprocess_alter($controller, &$args, $options) {
+
+    // Determine wht type of service request is being made, and on which
+    // type of resource.
+    $request_info = nyulmc_ood_services_api_code_get_action_from_controller($controller);
+
+    // Call child functions, based on their resource type. We call these functions
+    // so you don't have to touch this bas function. You should only update this
+    // to add new types of resource callbacks to the list already in this switch
+    // statement.
+    switch($request_info['resource']) {
+        case 'node':
+            nyulmc_ood_services_api_core_request_preprocess_node($controller, $args, $options, $request_info);
+            break;
+
+        /*
+         case 'taxonomy_term':
+            nyulmc_services_api_core_request_preprocess_taxonomy_term($controller, $args, $options, $request_info);
+            break;
+        */
+    }
+}
+
+/**
+ * Determine the resource and action based upon the passed controller.
+ *
+ * @param array $controller
+ *    A controller definition, as passed in hook_services_request pre and
+ *    postprocess. We really only care about $controller['callback'].
+ *
+ * @return array | boolean
+ *    An array containing the resource, action and callback, if a match
+ *    was found. Otherwise, FALSE.
+ */
+function nyulmc_ood_services_api_code_get_action_from_controller($controller)
+{
+
+  // Determine our endpoint, or default to API.
+  $endpoint = 'api';
+  $endpoint = services_get_server_info('endpoint_path', '');
+
+  // Get the rest server, so we can determine the resource.
+  $services_rest_server_factory = variable_get('services_rest_server_factory_class', 'ServicesRESTServerFactory');
+  $rest_server_factory = new $services_rest_server_factory(array('endpoint_path' => $endpoint));
+  $rest_server = $rest_server_factory->getRESTServer();
+
+  // Get our resource.
+  $canonical_path = $rest_server->getCanonicalPath();
+
+  // Check the system for our reference list of endpoint => callback mappings.
+  // If not set, we'll rebuild them, and store them as a variable,
+  // for better performance.
+  $resource_endpoints = variable_get('nyulmc_ood_services_api_core_resource_list', NULL);
+  if(!isset($resource_endpoints) || empty($resource_endpoints)) {
+    syslog(1, ' > get_action_from_controller > Resource Endpoint Array not set... building...');
+    $resource_endpoints = nyulmc_ood_services_api_code_build_resource_list($endpoint);
+    variable_set('nyulmc_ood_services_api_core_resource_list', $resource_endpoints);
+  }
+
+  // If we determined our path (re: our resource), look at all actions on that
+  // resource, and their subsiquent callbacks.
+  if(isset($canonical_path)) {
+
+    // If our path is node/1, node/1/action, etc, just get the first piece of
+    // the path, I.E. node.
+    $canonical_path = explode('/',$canonical_path);
+    if(is_array($canonical_path)) {
+      $canonical_path = $canonical_path[0];
+    }
+
+    // Using our root conical path (which should be our resource),
+    // check our resource endpoint array's resource key for our callback.
+    if(isset($resource_endpoints[$endpoint][$canonical_path])) {
+      if($action = array_search($controller['callback'], $resource_endpoints[$endpoint][$canonical_path])) {
+        return array(
+          'resource' => $canonical_path,
+          'action' => $action,
+          'callback' => $controller['callback'],
+        );
+      }
+    }
+  }
+
+  return FALSE;
+
+}
+
+/**
+ * Clear our resource_endpoint reference array whenever caches are flushed.
+ *
+ * Implements hook_flush_caches()
+ */
+function nyulmc_ood_services_api_core_flush_caches() {
+
+    // Delete our variable, so it can be reset.
+    // Since a clear cache is needed to update the service endpoint/resource
+    // definitions anyway, this should be enough to keep this list up-to-date.
+    variable_del('nyulmc_ood_services_api_core_resource_list');
+
+    // This function is really meant to return a list of cache tables
+    // to be cleared. So, we return an array, even though we're not using it.
+    return array();
+}
+
+
+/**
+ * Organize our resource actions by (resource.action) AS
+ * [resource][action] => name.
+ *
+ * @param string $endpoint
+ *   Our endpoint name.
+ *
+ * @return array
+ *   An array of ['resource']['endpoint'] => resource.endpoint
+ */
+function nyulmc_ood_services_api_code_build_resource_list ($endpoint) {
+
+    // Get all resoures / actions.
+    $resources = services_controllers_list($endpoint);
+    $results = array();
+
+    // Resources are all keyed as resource.action.
+    // We need to structure them properly.
+    if(is_array($resources) && !empty($resources)) {
+        foreach($resources AS $key => $data) {
+            $resource = explode('.', $key);
+            if(is_array($resource)) {
+                $action = $resource[1];
+                $resource = $resource[0];
+
+                // Get the resource, and assign the callback.
+                $action_controller = services_controller_get($key, $endpoint);
+                $results[$endpoint][$resource][$action] = $action_controller['callback'];
+            }
+        }
+    }
+    return $results;
+}

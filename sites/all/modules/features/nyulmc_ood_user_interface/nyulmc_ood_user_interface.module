@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD User Interface feature.
+ */
+
+include_once 'nyulmc_ood_user_interface.features.inc';

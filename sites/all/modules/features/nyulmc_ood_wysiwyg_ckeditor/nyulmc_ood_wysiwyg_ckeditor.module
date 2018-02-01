@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Code for the NYULMC Ckeditor feature. 
+ *
+ * @note
+ *    This is a feature module. Parts of it are auto-generated, while parts are
+ *    written by developers. Generally, the .module file (this file) is all
+ *    human code. Any .features modules, generally, are not. In this file,
+ *    the .wysiwyg.inc file is also auto-generated. So ignore it if you're
+ *    trying to figure out how everything works. 
+ */
+
+
+include_once 'nyulmc_ood_wysiwyg_ckeditor.features.inc';
+
+/**
+ * Implements file size and type validations when uploading files.
+ * 
+ * Implements hook_FORM_ID_alter
+ */
+function nyulmc_ood_wysiwyg_ckeditor_form_media_add_upload_alter(&$form, &$form_state, $form_id) {
+    $upload_validators = array(
+        'file_validate_size' => [2097152],
+        'file_validate_extensions' => ['jpg jpeg gif png mp4']
+    );
+    $form['#validators'] = $upload_validators;
+    $form['upload']['#upload_validators'] = $upload_validators;
+    $form['upload']['#description'] = theme_file_upload_help(array(
+        'description' => '',
+        'upload_validators' => $form['upload']['#upload_validators']
+
+    ));
+}

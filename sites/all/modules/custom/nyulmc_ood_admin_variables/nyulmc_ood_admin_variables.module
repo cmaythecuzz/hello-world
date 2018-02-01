@@ -1,0 +1,44 @@
+<?php
+/**
+ * @file
+ *
+ *   This module exposes several custom variables, and a form to set them
+ *   in the admin.
+ */
+
+/**
+ * Constants
+ */	
+define('NYULMC_OOD_ADMIN_VARIABLES_PREFIX', 'nyulmc_ood_admin_variables_');
+
+/**
+ * This is the menu hook, and is where we expose a URL to link into code.
+ *
+ * Implements hook_menu().
+ */
+function nyulmc_ood_admin_variables_menu(){
+	$items = array();
+	
+	$items['admin/nyulmc'] = array(
+		'title' => t('NYULMC'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('nyulmc_ood_admin_variables_form'),
+		'access arguments' => array('administer content'),
+		'description' => t('Manage variable settings for the NYULMC OOD system, such as the Learn About content for the Fund pages.'),
+		'file' => 'nyulmc_ood_admin_variables.form.inc',
+		'type' => MENU_NORMAL_ITEM,
+	);
+	
+	$items['admin/nyulmc/variable'] = array(
+		'title' => t('NYULMC Settings'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('nyulmc_ood_admin_variables_form'),
+		'access arguments' => array('administer content'),
+		'access arguments' => array('administer content'),
+		'description' => t('Manage variable settings for the NYULMC OOD system, such as the Learn About content for the Fund pages.'),
+		'file' => 'nyulmc_ood_admin_variables.form.inc',
+		'type' => MENU_LOCAL_TASK,
+	);
+	
+	return $items;
+}

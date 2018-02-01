@@ -1,0 +1,11 @@
+blockquote.nyulmc_quote {
+  border: 0px;
+  font-size: 1.2em;
+  background: none;
+}
+blockquote.nyulmc_quote cite{
+  border: 0px;
+  font-style: italic;
+  font-size: .85em;
+  font-weight: lighter;
+}

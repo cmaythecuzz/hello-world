@@ -1,0 +1,126 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Event feature.
+ */
+
+include_once 'nyulmc_ood_content_type_event.features.inc';
+
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_event_post_features_revert($component) {
+  $fields_to_delete = array(
+    'field_event_past_eyebrow',
+    'field_event_past_event_figure',
+    'field_event_part_event_text',
+    'field_event_text_line_1',
+    'field_event_text_line_2',
+    'field_gallery_id',
+    'body',
+    'field_event_title_eyebrow',
+    'field_event_details',
+    'field_primary_secondary',
+    'field_event_feature_image',
+    'field_event_amount_raised_tl_1',
+    'field_event_amount_raised_tl_2',
+    'field_event_overview_eyebrow',
+  );
+
+  // delete all fields that were excluded from the feature.
+  foreach ($fields_to_delete as $field) {
+    nyulmc_ood_core_delete_field_instance("node", "event", $field);
+  }
+
+  // Migrate data from old fields to new ones
+  $entity_type = 'node';
+  $bundle_name = 'event'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_event_short_description'; // Field added to field_collection entity.
+  $field_name_to  = 'field_event_overview'; // Field added to field_collection entity.
+  if (($instance_from = field_info_instance($entity_type, $field_name_from, $bundle_name))
+    && ($instance_to = field_info_instance($entity_type, $field_name_to, $bundle_name))) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', $bundle_name);
+
+    $result = $query->execute();
+
+    if (isset($result['node'])) {
+      $events_items_nids = array_keys($result['node']);
+      $events_items = entity_load('node', $events_items_nids);
+    }
+    else{
+      $events_items = array();
+    }
+
+    foreach ($events_items as $event) {
+      $node = entity_metadata_wrapper('node', $event);
+      if($node->{$field_name_from}->value()){
+        $node->{$field_name_to} = $node->{$field_name_from}->value()['safe_value'];
+      }
+      $node->save();
+    }
+    echo "Performed " . count($events_items) . " migrations. Deleting field.\n";
+    field_delete_instance($instance_from);
+  }
+}
+
+/**
+ * @param stdClass $node
+ * @param $node
+ */
+function nyulmc_ood_content_type_event_nyulmc_slug_event_handle($node) {
+  module_load_include('inc', 'nyulmc_ood_core', 'nyulmcSlugFieldCollection.class');
+  $slugGen = new nyulmcSlugFieldCollection();
+  $speeches = $node->field_event_speeches;
+  $slugs = array();
+  foreach($speeches[LANGUAGE_NONE] as $key => &$speech) {
+    $entity = $speech['entity'];
+    $slug = isset($speech['field_event_speech_slug'][LANGUAGE_NONE][0]['value']) ? trim($speech['field_event_speech_slug'][LANGUAGE_NONE][0]['value']) : null;
+    $name = isset($entity->field_event_speech_speaker[LANGUAGE_NONE][0]['value']) ? $entity->field_event_speech_speaker[LANGUAGE_NONE][0]['value'] : '';
+    $name = (empty($slug)) ? $name : $slug;
+    if(empty($name)) {
+      $slug = '';
+    } else {
+      $slug = $slugGen->prepareSlug($name, 'field_event_speech_slug', $speeches, '', $key);
+      $slugs[] = $slug;
+    }
+
+    $entity->field_event_speech_slug[LANGUAGE_NONE][0]['value'] = $slug;
+    $speech['field_event_speech_slug'][LANGUAGE_NONE][0]['value'] = $slug;
+
+  }
+}
+
+/**
+ * Implements hook_wysiwyg_plugin().
+ */
+function nyulmc_ood_content_type_event_wysiwyg_plugin($editor, $version) {
+  switch ($editor) {
+    case 'ckeditor':
+      $plugins = array();
+      $plugins['nyulmc_photo_link_quote'] = array(
+        'buttons' => array(
+          'nyulmc_photo_link_quote' => 'NYULMC Speech Photo Quote',
+        ),
+        'path' => drupal_get_path('module', 'nyulmc_ood_content_type_event') . '/ckeditor_plugins/nyulmc_photo_link_quote',
+        'load' => TRUE,
+      );
+      return $plugins;
+  }
+}
+
+/**
+ * Implements hook_wysiwyg_editor_settings_alter().
+ */
+function nyulmc_ood_content_type_event_wysiwyg_editor_settings_alter(&$settings, $context) {
+  if ($context['profile']->editor == 'ckeditor' && $context['profile']->format == 'nyulmc_events_html') {
+    $settings['toolbar'][4][] = 'nyulmc_photo_link_quote';
+
+    if(($key = array_search('nyulmc_photo_link_quote', $settings['toolbar'][5])) !== false) {
+      unset($settings['toolbar'][5][$key]);
+    }
+    $settings['toolbar'][5] = array_values($settings['toolbar'][5]);
+  }
+}

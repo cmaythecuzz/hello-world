@@ -1,0 +1,53 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Why Give feature.
+ */
+
+include_once 'nyulmc_ood_content_type_why_give.features.inc';
+
+function nyulmc_ood_content_type_why_give_form_why_give_node_form_alter(&$form, &$form_state, $form_id){
+
+  $singlteton_exists = nyulmc_ood_core_node_type_exists('why_give', $form['nid']['#value']);
+
+  if($singlteton_exists){
+
+    drupal_set_message(t('A published Why Give page already exists. <a href="' . base_path() . 'node/' . $singlteton_exists . '/edit">Click here</a> to edit that node.'), 'warning');
+
+    drupal_set_message(t('If you publish a new Why Give page, the existing version will be unpublished.'), 'warning');
+
+  }
+}
+
+/**
+ * Implements hook_pre_features_enable_feature().
+ */
+function nyulmc_ood_content_type_why_give_pre_features_enable_feature($component) {
+
+  // delete field_title field
+  $entity_type = 'node';
+  $field_name = 'field_title';
+  $bundle_name = 'why_give';
+  if ($instance = field_info_instance($entity_type, $field_name, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+}
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_why_give_post_features_revert($component) {
+
+  $fields_to_delete = array(
+    'field_why_give_pi_section_title',
+    'field_why_give_story_title',
+    'field_why_give_stewar_sect_title',
+    'field_stewardship_collection'
+  );
+
+  // delete all fields that were excluded from the feature.
+  foreach ($fields_to_delete as $field) {
+    nyulmc_ood_core_delete_field_instance("node", "why_give", $field);
+  }
+}

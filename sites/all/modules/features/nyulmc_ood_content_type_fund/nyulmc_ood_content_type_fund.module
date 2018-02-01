@@ -1,0 +1,105 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Fund feature.
+ */
+
+include_once 'nyulmc_ood_content_type_fund.features.inc';
+
+/**
+ * Implements hook_pre_features_revert().
+ */
+function nyulmc_ood_content_type_fund_pre_features_revert($module_name) {
+
+  // delete default content types
+  node_type_delete('page');
+  node_type_delete('article');
+  node_type_delete('webform');
+
+}
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_fund_post_features_revert($component) {
+
+  // delete all fields that were excluded from the feature.
+  $entity_type = 'field_collection_item';
+  $bundle_name = 'field_fund_stats'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_past_stats_text_line_2'; // Field added to field_collection entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  $entity_type = 'field_collection_item';
+  $bundle_name = 'field_fund_field_supporters'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_supporter_is_doctor'; // Field added to field_collection entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  $entity_type = 'field_collection_item';
+  $bundle_name = 'field_find_impact_why_we_give'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_fund_impact_link_title_url'; // Field added to field_collection entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+  $entity_type = 'field_collection_item';
+  $bundle_name = 'field_fund_impact_see_the_impact'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_fund_impact_link_title_url'; // Field added to field_collection entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  $entity_type = 'node';
+  $bundle_name = 'fund'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_fund_priority_fund'; // Field added to node entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  $entity_type = 'node';
+  $bundle_name = 'fund'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_fund_hero_link_cta_title'; // Field added to node entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  $entity_type = 'node';
+  $bundle_name = 'fund'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_categories'; // Field added to node entity.
+  if ($instance = field_info_instance($entity_type, $field_name_from, $bundle_name)) {
+    field_delete_instance($instance);
+  }
+
+  // Migrate data from old fields to new ones
+  $entity_type = 'node';
+  $bundle_name = 'fund'; // Field collection entity name (for example added to node).
+  $field_name_from  = 'field_fund_link_to_location_page'; // Field added to field_collection entity.
+  $field_name_to  = 'field_fund_sidebar_link'; // Field added to field_collection entity.
+  if (($instance_from = field_info_instance($entity_type, $field_name_from, $bundle_name))
+    && ($instance_to = field_info_instance($entity_type, $field_name_to, $bundle_name))) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'fund');
+
+    $result = $query->execute();
+
+    if (isset($result['node'])) {
+      $funds_items_nids = array_keys($result['node']);
+      $funds_items = entity_load('node', $funds_items_nids);
+    }
+    else{
+      $funds_items = array();
+    }
+
+    foreach ($funds_items as $fund) {
+      $node = entity_metadata_wrapper('node', $fund);
+      $node->field_fund_sidebar_link = array('url' => $node->field_fund_link_to_location_page->value());
+      $node->save();
+    }
+    echo "Performed " . count($funds_items) . " migrations. Deleting field.\n";
+    field_delete_instance($instance_from);
+  }
+
+}

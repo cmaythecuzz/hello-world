@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5
+    environment:
+      MYSQL_ROOT_PASSWORD: not_a_secret
+      MYSQL_DATABASE: giving_local
+      MYSQL_USER: db_user_local
+      MYSQL_PASSWORD: not_a_secret
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d:ro
+      - ./db/config:/etc/mysql/conf.d
+
+  drupal:
+    build: .
+    depends_on:
+      - mysql
+    environment:
+      DB_NAME: giving_local
+      DB_USER: db_user_local
+      DB_PASS: not_a_secret
+      DB_HOST: mysql
+      DB_PORT: 3306
+    ports:
+      - 8082:80
+    volumes:
+      - .:/var/www/html:rw
+      - ./sites/default/settings.php.bak:/var/www/html/sites/default/settings.php:ro
+    extra_hosts:
+      - "nyulangone.dev:22.22.22.22"

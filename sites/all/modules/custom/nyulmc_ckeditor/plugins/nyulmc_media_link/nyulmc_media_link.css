@@ -1,0 +1,6 @@
+a.nyulmc_media_link {
+  background: #ddd url("/sites/all/modules/contrib/ckeditor/plugins/nyulmc_media_link/icons/media_link_icon.png") right center no-repeat;
+  padding: .25em 2em .25em .25em;
+  border: 1px solid #ddd;
+  margin: .2em;
+}

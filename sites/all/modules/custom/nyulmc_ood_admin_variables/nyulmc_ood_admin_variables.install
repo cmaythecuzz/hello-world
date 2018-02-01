@@ -1,0 +1,23 @@
+<?php
+/**
+ * Delete default variables when this module is un-installed.
+ *
+ * Implements hook_uninstall()
+ */
+function nyulmc_ood_admin_variables_uninstall() {
+  drupal_load('module', 'nyulmc_ood_admin_variables');
+  module_load_include('inc', 'nyulmc_ood_admin_variables', 'nyulmc_ood_admin_variables.form');
+
+  // This is a prefix to all of our variables, to namespace them inside the
+  // variables table.
+  $prefix = NYULMC_OOD_ADMIN_VARIABLES_PREFIX;
+
+  $about_giving = _nyulmc_ood_admin_variables_get_about_giving_fields_definition();
+  $default_nids = _nyulmc_ood_admin_variables_get_why_give_default_nids();
+
+  $variables = array_merge($about_giving, $default_nids);
+  
+  foreach($variables as $var){
+    variable_del($prefix . $var['key']);
+  }
+}

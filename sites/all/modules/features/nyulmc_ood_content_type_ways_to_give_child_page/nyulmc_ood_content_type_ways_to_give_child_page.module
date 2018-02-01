@@ -1,0 +1,16 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Ways to give Child Page feature.
+ */
+
+include_once 'nyulmc_ood_content_type_ways_to_give_child_page.features.inc';
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function nyulmc_ood_content_type_ways_to_give_child_page_form_ways_to_give_child_page_node_form_alter(&$form, &$form_state, $form_id) {
+  $form['field_wtg_child_stories'][LANGUAGE_NONE][0]['field_wtg_child_story_reference'][LANGUAGE_NONE][0]['value']['#autocomplete_path'] = 'autocomplete/speeches_and_passion_stories';
+  $form['field_wtg_child_stories'][LANGUAGE_NONE][1]['field_wtg_child_story_reference'][LANGUAGE_NONE][0]['value']['#autocomplete_path'] = 'autocomplete/speeches_and_passion_stories';
+  $form['field_wtg_child_stories'][LANGUAGE_NONE][2]['field_wtg_child_story_reference'][LANGUAGE_NONE][0]['value']['#autocomplete_path'] = 'autocomplete/speeches_and_passion_stories';
+}

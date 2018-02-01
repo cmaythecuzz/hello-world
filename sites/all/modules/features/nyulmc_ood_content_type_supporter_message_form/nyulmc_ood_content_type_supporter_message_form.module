@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Supporter Message Form feature.
+ */
+
+include_once 'nyulmc_ood_content_type_supporter_message_form.features.inc';

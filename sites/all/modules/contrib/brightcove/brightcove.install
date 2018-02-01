@@ -1,0 +1,519 @@
+<?php
+
+/**
+ * @file
+ * Installation file for Brightcove module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function brightcove_field_schema() {
+  return [
+    'columns' => [
+      'brightcove_id' => [
+        'type' => 'varchar',
+        'length' => 15,
+        'not null' => FALSE
+      ],
+      'player' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'bcid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'indexes' => [
+      'brightcove_id' => ['brightcove_id'],
+    ],
+  ];
+}
+
+
+/**
+ * Implements hook_schema().
+ */
+function brightcove_schema() {
+  $schema = [];
+
+  $schema['cache_brightcove'] = drupal_get_schema_unprocessed('system', 'cache');
+
+  $schema['brightcove_client'] = [
+    'description' => 'The base table for brightcove clients.',
+    'fields' => [
+      'bcid' => [
+        'description' => 'The primary identifier for a brightcove client, used internally only.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'label' => [
+        'description' => 'The label of this client.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'account_id' => [
+        'description' => 'The ID of the account this client belongs to.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'client_id' => [
+        'description' => 'The client ID.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'client_secret' => [
+        'description' => 'The client secret key.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'The {users}.uid that created this client.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'description' => 'The Unix timestamp when the client was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'changed' => [
+        'description' => 'The Unix timestamp when the client was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'data' => [
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of additional data.',
+      ],
+      'status' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ],
+      'module' => [
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['bcid'],
+    'unique keys' => [
+      'client_id' => ['client_id'],
+    ],
+    'creator' => [
+      'table' => 'users',
+      'columns' => ['uid' => 'uid'],
+    ],
+  ];
+
+  $schema['brightcove_callback'] = [
+    'fields' => [
+      'id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'fid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'hash' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'client' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'parent_entity_type' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'parent_field_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'parent_bundle_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['brightcove_video'] = [
+    'description' => 'Stores information about brightcove video.',
+    'fields' => [
+      'bvid' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique key for brightcove video.',
+      ],
+      'type' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'video_id' => [
+        'description' => 'The ID of the video.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'big',
+      ],
+      'account_id' => [
+        'description' => 'The ID of the brightcove account this video belongs to.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'big',
+      ],
+    ],
+    'primary key' => ['bvid'],
+    'unique keys' => [
+      'client_video' => ['video_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function brightcove_requirements($phase) {
+  $requirements = [];
+  $t = get_t();
+
+  if ($phase !== 'install') {
+    $api_wrapper_installed = (($api_wrapper_library = libraries_detect('PHP-API-Wrapper')) && !empty($api_wrapper_library['installed']));
+    $requirements['brightcove'] = [
+      'title' => $t('Brightcove API Wrapper'),
+      'value' => isset($api_wrapper_library['version']) ? $t('Installed') : $t('Not installed'),
+      'severity' => $api_wrapper_installed ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      'description' => $api_wrapper_installed ? $t('The Brightcove PHP Wrapper is installed.') : $t('The Brightcove PHP Wrapper is missing.'),
+    ];
+  }
+
+  if (!function_exists('curl_init')) {
+    $requirements['curl']['title'] = $t('cURL');
+    $requirements['curl']['description'] = $t('Brightcove MAPI SDK requires a cURL library. You should install it on your server.');
+    $requirements['curl']['severity'] = REQUIREMENT_ERROR;
+    $requirements['curl']['value'] = $t('Missing');
+  }
+
+  if ($phase === 'runtime') {
+    $client_found = FALSE;
+    $client_id = variable_get('brightcove_client_default');
+    if ($client_id) {
+      $client_found = (bool) brightcove_client_load($client_id);
+    }
+
+    $requirements['brightcove_default_client'] = [
+      'title' => $t('Default brightcove client'),
+      'severity' => $client_found ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      'value' => $client_found ? $t('Selected') : l($t('Not selected'), 'admin/config/media/brightcove/client'),
+    ];
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function brightcove_uninstall() {
+  variable_del('brightcove_allow_public');
+  variable_del('brightcove_check_for_unavailable');
+  variable_del('brightcove_create_multiple_renditions');
+  variable_del('brightcove_custom_field_number');
+  variable_del('brightcove_default_image');
+  variable_del('brightcove_default_thumbnail');
+  // Remove legacy library path too.
+  variable_del('brightcove_echove_path');
+  variable_del('brightcove_encode_to');
+  variable_del('brightcove_mapi_path');
+  variable_del('brightcove_player');
+  variable_del('brightcove_player_full_api');
+  variable_del('brightcove_player_pid');
+  variable_del('brightcove_player_default');
+  variable_del('brightcove_player_key');
+  variable_del('brightcove_preserve_source_rendition');
+  variable_del('brightcove_read_api_key');
+  variable_del('brightcove_status_display_unavailable');
+  variable_del('brightcove_user_field');
+  variable_del('brightcove_write_api_key');
+  // Cache variables.
+  variable_del('brightcove_cache_enabled');
+  variable_del('brightcove_cache_type');
+  variable_del('brightcove_cache_db');
+  variable_del('brightcove_cache_file');
+  variable_del('brightcove_cache_memcached');
+}
+
+/**
+ * Update to the 7.x-6.x version.
+ *
+ * - creates tables for the new entities
+ * - updates field definitions
+ * - updates field config (brightcove_field -> brightcove module merge)
+ * - enables additional dependencies
+ */
+function brightcove_update_7600() {
+  db_delete('cache')
+    ->condition('cid', 'ctools_plugin%', 'LIKE')
+    ->execute();
+
+  $schema = [];
+
+  $schema['brightcove_client'] = [
+    'description' => 'The base table for brightcove clients.',
+    'fields' => [
+      'bcid' => [
+        'description' => 'The primary identifier for a brightcove client, used internally only.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'label' => [
+        'description' => 'The label of this client.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'account_id' => [
+        'description' => 'The ID of the account this client belongs to.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'client_id' => [
+        'description' => 'The client ID.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'client_secret' => [
+        'description' => 'The client secret key.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'The {users}.uid that created this client.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'description' => 'The Unix timestamp when the client was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'changed' => [
+        'description' => 'The Unix timestamp when the client was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'data' => [
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of additional data.',
+      ],
+      'status' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ],
+      'module' => [
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['bcid'],
+    'unique keys' => [
+      'client_id' => ['client_id'],
+    ],
+    'creator' => [
+      'table' => 'users',
+      'columns' => ['uid' => 'uid'],
+    ],
+  ];
+
+  $schema['brightcove_callback'] = [
+    'fields' => [
+      'id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'fid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['brightcove_video'] = [
+    'description' => 'Stores information about brightcove video.',
+    'fields' => [
+      'bvid' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique key for brightcove video.',
+      ],
+      'type' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'video_id' => [
+        'description' => 'The ID of the video.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'big',
+      ],
+      'account_id' => [
+        'description' => 'The ID of the brightcove account this video belongs to.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'big',
+      ],
+    ],
+    'primary key' => ['bvid'],
+    'unique keys' => [
+      'client_video' => ['video_id'],
+    ],
+  ];
+
+  foreach ($schema as $table => $def) {
+    db_create_table($table, $def);
+  }
+
+  db_drop_table('brightcove_player');
+  variable_del('brightcove_default_player');
+
+  if (module_exists('field_sql_storage')) {
+    $coldef = [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ];
+
+    foreach (field_info_fields() as $name => $def) {
+      if ($def['type'] == 'brightcove_field' && $def['storage']['type'] == 'field_sql_storage') {
+        $tablename = _field_sql_storage_tablename($def);
+        $revtablename = _field_sql_storage_revision_tablename($def);
+        $bcid_col = _field_sql_storage_columnname($name, 'bcid');
+
+        db_add_field($tablename, $bcid_col, $coldef);
+        db_add_field($revtablename, $bcid_col, $coldef);
+      }
+    }
+
+    db_update('field_config')
+      ->fields([
+        'module' => 'brightcove',
+      ])
+      ->condition('module', 'brightcove_field')
+      ->execute();
+  }
+
+  module_enable(['date_api', 'libraries'], TRUE);
+
+  cache_clear_all();
+
+  module_load_include('inc', 'brightcove', 'brightcove.playlist');
+  _brightcove_configure_playlist_entity();
+
+  drupal_set_message(t('The brightcove module has been updated. Because of the changes in the API, please visit the !admin-link to add your credentials.', [
+    '!admin-link' => l(t('API Client page'), 'admin/config/media/brightcove/client'),
+  ]));
+}
+
+function brightcove_update_7601() {
+  db_add_field('brightcove_callback', 'hash', [
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ]);
+  db_add_field('brightcove_callback', 'client', [
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ]);
+  db_add_field('brightcove_callback', 'parent_entity_type', [
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ]);
+  db_add_field('brightcove_callback', 'parent_field_name', [
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ]);
+  db_add_field('brightcove_callback', 'parent_bundle_name', [
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ]);
+  db_add_field('brightcove_callback', 'metadata', [
+    'type' => 'text',
+    'not null' => TRUE,
+    'initial' => '',
+  ]);
+  db_drop_primary_key('brightcove_callback');
+  db_add_primary_key('brightcove_callback', ['hash']);
+}
+
+/**
+ * Cleans up possible leftovers from the old brightcove_field module.
+ */
+function brightcove_update_7602() {
+  db_delete('system')
+    ->condition('name', 'brightcove_field')
+    ->execute();
+}

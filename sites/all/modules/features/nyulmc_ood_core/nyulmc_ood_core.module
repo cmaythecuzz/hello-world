@@ -1,0 +1,432 @@
+<?php
+
+/**
+ * @file
+ * Code for the NYULMC OOD Core feature.
+ */
+
+include_once 'nyulmc_ood_core.features.inc';
+
+
+/**
+ * Handle defaults on any nodes being saved.
+ *
+ * This includes processing a default slug.
+ *
+ * Implements hook_node_presave().
+ *
+ * @param Obj $node
+ *   Passed by reference.
+ */
+function nyulmc_ood_core_node_presave($node) {
+
+  // Handle populating any slugs, if they are not set.
+  nyulmc_ood_core_manage_slug($node);
+
+  // Handle singletons whenever a node is being published.
+  nyulmc_ood_core_manage_singleton($node);
+
+  switch ($node->type) {
+    case 'home_page':
+      if ($node->field_home_sticky_reset_visitors[$node->language][0]['value']) {
+        $time = time();
+
+        $node->field_home_sticky_date_of_reset[$node->language][0]['value'] = $time;
+        $node->field_home_sticky_reset_visitors[$node->language][0]['value'] = 0;
+      }
+      break;
+  }
+}
+
+
+/**
+ * Manage any singletons being saved.
+ *
+ * If we are publishing a singleton, make sure all other singletons
+ * of that type are unpublished.
+ *
+ * @param Object $node
+ *   The node object being saved.
+ */
+function nyulmc_ood_core_manage_singleton(&$node) {
+
+  $process_singleton = FALSE;
+
+  // Detect a node being published, or a new node set to published. Any other
+  // node should not trigger this functionality, particularly because we'll be
+  // updating nodes below. Those nodes will trigger this function call again,
+  // but must not continue.
+  if (isset($node->original->status) && $node->original->status == 1 && $node->status == 1) {
+    // Updating an already published node.
+  }
+  elseif (isset($node->original->status) && $node->original->status == 0 && $node->status == 1) {
+    // Publishing an unpublished node.
+  }
+  elseif(!isset($node->original) && $node->status == 1) {
+    // New node
+  }
+  else {
+    return;
+  }
+
+  // Only enforce singletons if their content type
+  // should enforce this functionality.
+  switch($node->type) {
+    case 'home_page':
+    case 'supporter_landing':
+    case 'funds_list':
+    case '175th_anniversary':
+    case 'fundraise_landing':
+    case 'events_landing':
+    case 'vilcek_hall':
+    case 'ways_to_give_landing':
+    case 'why_give':
+      $process_singleton = TRUE;
+      break;
+
+    default:
+      return;
+  }
+
+  // Only process a singleton if we found an accepted type.
+  if($process_singleton === TRUE && ($node->status === 1)) {
+    nyulmc_ood_core_unpublish_nodes($node->type, $node->nid);
+  }
+}
+
+
+/**
+ * Unpublish all other nodes of a certain $bundle.
+ *
+ * @param string $bundle
+ *   The content type of the node we're unpublishing.
+ * @param int $nid_to_exclude
+ *   The node ID that should not be unpublished.
+ */
+function nyulmc_ood_core_unpublish_nodes($bundle, $nid_to_exclude) {
+try {
+
+    // Get all nodes of type $bundle.
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('type', $bundle, '=')
+      ->condition('status', 0, '<>');
+
+    // Only exclude a node ID if one exists,
+    // which it will not yet for new nodes.
+    if(is_numeric($nid_to_exclude)) {
+      $query->condition('nid', $nid_to_exclude, '<>');
+    }
+
+    $result = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
+
+    // Foreach node which is not excluded, unpublish and resave the node.
+    if(isset($result) && !empty($result)) {
+      foreach($result AS $r) {
+        $node = node_load($r['nid']);
+        $node->status = 0;
+        node_save($node);
+
+        // Inform the user.
+        drupal_set_message(t('Your @bundle node, <a href="/node/@nid">@title</a>, was unpublished, because you published a new node.', array('@bundle' => $bundle, '@nid' => $node->nid, '@title' => $node->title)), 'warning');
+      }
+    }
+  }
+  catch(Exception $e) {
+    drupal_set_message('There was a problem while attempting to unpublish other nodes.', 'error');
+  }
+}
+
+
+/**
+ * Manage defaults and slug generation for nodes.
+ *
+ * @param Object $node
+ *   The node object being saved.
+ */
+function nyulmc_ood_core_manage_slug(&$node) {
+
+  // Grab our slug generator.
+  module_load_include('inc', 'nyulmc_ood_core', 'nyulmcSlug.class');
+  $slugGen = new nyulmcSlug();
+
+  $process_slug = FALSE;
+  $enforce_unique_slug = TRUE;
+
+  // Grab a slug, and prepare it.
+  switch($node->type) {
+
+    case 'fund':
+    case 'passion_story':
+      $slug_field = 'field_slug';
+      $process_slug = TRUE;
+      break;
+    case 'event':
+      $slug_field = 'field_event_slug';
+      $process_slug = TRUE;
+      break;
+    case 'vilcek_hall':
+      $slug_field = 'field_vlck_hero_slug';
+      $process_slug = TRUE;
+      break;
+    case 'supporter_message_form':
+      $slug_field = 'field_sup_msg_form_slug';
+      $process_slug = TRUE;
+      break;
+    case 'ways_to_give_child_page':
+      $slug_field = 'field_wtg_child_slug';
+      $process_slug = TRUE;
+      break;
+
+  }
+
+  // Only process a slug if we found an accepted type.
+  if($process_slug === TRUE) {
+    // If a slug exists, grab it. Otherwise, we'll default to node title.
+    $slug = isset($node->{$slug_field}[LANGUAGE_NONE][0]['value']) ? trim($node->{$slug_field}[LANGUAGE_NONE][0]['value']) : null;
+    $slug = (empty($slug)) ? $node->title : $slug;
+
+    // We need the node ID, so we exclude ourself when checking
+    // that our slug is unique.
+    $nid = isset($node->nid) ? $node->nid : null;
+
+    // Set our final slug back to the node, to be saved.
+    $node->{$slug_field}[LANGUAGE_NONE][0]['value'] = $slugGen->prepareSlug($slug, $slug_field, 'node', $node->type, $nid, $enforce_unique_slug);
+
+    module_invoke_all("nyulmc_slug_{$node->type}_handle", $node);
+  }
+}
+
+/**
+ * Check to see if any any nodes of this content type exists.
+ *
+ * Note that only published nodes are found.
+ *
+ * @param string $type
+ *   The machine name of the content type, which we should look up.
+ * @param int $nid_to_exclude
+ *   An ID we should exclude from our search. If we're checking if any exist
+ *   aside from ours, we use this field to exclude our nid.
+ *
+ * @return int | boolean
+ *   The ID of an existing node of the specified type,
+ *   or FALSE if none was found.
+ */
+function nyulmc_ood_core_node_type_exists($type, $nid_to_exclude=null) {
+
+  // Make sure invalid values are ignored.
+  if(!isset($nid_to_exclude) || !is_numeric($nid_to_exclude) && $nid_to_exclude < 0) {
+    $nid_to_exclude = FALSE;
+  }
+
+  $result = db_select('node', 'n')
+    ->condition('type', $type, '=')
+    ->condition('status', 1, '=')
+    ->fields('n', array('nid'))
+    ->orderBy('nid', 'ASC')
+    ->execute()->fetchAll();
+
+  $lowest_value = null;
+
+  if($result) {
+    // The first node (lowest nid) is the locations landing we'll default to.
+    // Find the lowest value and return it.
+    foreach($result AS $row) {
+      if(!is_numeric($lowest_value)) {
+        $lowest_value = $row->nid;
+      }
+      elseif($row->nid < $lowest_value) {
+        $lowest_value = $row->nid;
+      }
+    }
+  }
+
+  // If our passed node is the lowest existing node ID, then we're editing
+  // the right value, so return FALSE. This will avoid a redirect.
+  if(isset($nid_to_exclude) && $nid_to_exclude == $lowest_value) {
+    return FALSE;
+  }
+  elseif(isset($lowest_value) && $lowest_value > 0) {
+    return $lowest_value;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Unset any extra Metatag fields not needed for NYULMC in the admin menu
+ * for a node.
+ *
+ * Implements hook_form_form_id_alter()
+ */
+function nyulmc_ood_core_form_node_form_alter(&$form, &$form_state) {
+
+  //Attach our javascript file to node form.
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'nyulmc_ood_core') . '/nyulmc_ood_core.js',
+  );
+
+  // If the metatags module it appending this form, update the display.
+  if(isset($form['metatags'])) {
+
+    // Get the metadata section of the form array.
+    $metadata = &$form['metatags']['und'];
+
+    // Unset or hide several base sections of the metatag form.
+    // Note: we unset any non-text forms, since changing a select field to
+    // a hidden field will cause errors in the form API.
+    $metadata['abstract']['value']['#type'] = 'hidden';
+    $metadata['keywords']['value']['#type'] = 'hidden';
+    unset($metadata['advanced']);
+
+    // If the open graph module is enabled, hide several of it's fields.
+    if(isset($metadata['open-graph'])) {
+
+      // Grab our metdata open-graph form structure.
+      $open_graph = &$metadata['open-graph'];
+
+      // Hide values we're not using.
+      unset($open_graph['og:determiner']);
+      $open_graph['og:updated_time']['value']['#type'] = 'hidden';
+      $open_graph['og:see_also']['value']['#type'] = 'hidden';
+      $open_graph['og:image:secure_url']['value']['#type'] = 'hidden';
+      $open_graph['og:image:type']['value']['#type'] = 'hidden';
+      $open_graph['og:image:type']['value']['#type'] = 'hidden';
+      $open_graph['og:image:width']['value']['#type'] = 'hidden';
+      $open_graph['og:image:height']['value']['#type'] = 'hidden';
+      $open_graph['og:locale:alternate']['value']['#type'] = 'hidden';
+      $open_graph['og:latitude']['value']['#type'] = 'hidden';
+      $open_graph['og:longitude']['value']['#type'] = 'hidden';
+      $open_graph['og:street-address']['value']['#type'] = 'hidden';
+      $open_graph['og:locality']['value']['#type'] = 'hidden';
+      $open_graph['og:region']['value']['#type'] = 'hidden';
+      $open_graph['og:postal-code']['value']['#type'] = 'hidden';
+      $open_graph['og:country-name']['value']['#type'] = 'hidden';
+      $open_graph['og:email']['value']['#type'] = 'hidden';
+      $open_graph['og:phone_number']['value']['#type'] = 'hidden';
+      $open_graph['og:fax_number']['value']['#type'] = 'hidden';
+      $open_graph['og:locale']['value']['#type'] = 'hidden';
+      $open_graph['og:video']['value']['#type'] = 'hidden';
+      $open_graph['og:video:secure_url']['value']['#type'] = 'hidden';
+      $open_graph['og:video:width']['value']['#type'] = 'hidden';
+      $open_graph['og:video:height']['value']['#type'] = 'hidden';
+      $open_graph['video:duration']['value']['#type'] = 'hidden';
+      $open_graph['video:release_date']['value']['#type'] = 'hidden';
+      $open_graph['video:tag']['value']['#type'] = 'hidden';
+      $open_graph['video:actor']['value']['#type'] = 'hidden';
+      $open_graph['video:actor:role']['value']['#type'] = 'hidden';
+      $open_graph['video:director']['value']['#type'] = 'hidden';
+      $open_graph['video:writer']['value']['#type'] = 'hidden';
+      unset($open_graph['og:video:type']);
+      $open_graph['og:audio']['value']['#type'] = 'hidden';
+      $open_graph['og:audio:secure_url']['value']['#type'] = 'hidden';
+      $open_graph['og:audio:type']['value']['#type'] = 'hidden';
+    }
+
+    // If the twitter metatag module is enabled,
+    // hide a bunch of unused form fields in that section of the form.
+    if(isset($metadata['twitter-cards'])) {
+
+      // Grab our metdata open-graph form structure.
+      $twitter = &$metadata['twitter-cards'];
+
+      // Hide values we're not using.
+      unset($twitter['twitter:card']);
+      $twitter['twitter:creator']['value']['#type'] = 'hidden';
+      $twitter['twitter:creator:id']['value']['#type'] = 'hidden';
+      $twitter['twitter:url']['value']['#type'] = 'hidden';
+      $twitter['twitter:image:width']['value']['#type'] = 'hidden';
+      $twitter['twitter:image:height']['value']['#type'] = 'hidden';
+      $twitter['twitter:image0']['value']['#type'] = 'hidden';
+      $twitter['twitter:image1']['value']['#type'] = 'hidden';
+      $twitter['twitter:image2']['value']['#type'] = 'hidden';
+      $twitter['twitter:image3']['value']['#type'] = 'hidden';
+      $twitter['twitter:player']['value']['#type'] = 'hidden';
+      $twitter['twitter:player:width']['value']['#type'] = 'hidden';
+      $twitter['twitter:player:height']['value']['#type'] = 'hidden';
+      $twitter['twitter:player:stream']['value']['#type'] = 'hidden';
+      $twitter['twitter:player:stream:content_type']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:id:iphone']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:id:ipad']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:id:googleplay']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:url:iphone']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:url:ipad']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:country']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:url:googleplay']['value']['#type'] = 'hidden';
+      $twitter['twitter:label1']['value']['#type'] = 'hidden';
+      $twitter['twitter:data1']['value']['#type'] = 'hidden';
+      $twitter['twitter:label2']['value']['#type'] = 'hidden';
+      $twitter['twitter:data2']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:name:iphone']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:name:ipad']['value']['#type'] = 'hidden';
+      $twitter['twitter:app:name:googleplay']['value']['#type'] = 'hidden';
+    }
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function nyulmc_ood_core_menu_alter(&$items) {
+  if (isset($items['node/add/node_export'])) {
+    $items['node/add/node_export']['type'] = MENU_DEFAULT_LOCAL_TASK;
+  }
+}
+
+/**
+ * Deletes a field instance if it exists.
+ * @param $entity_type
+ * @param $bundle_name
+ * @param $field_name
+ */
+function nyulmc_ood_core_delete_field_instance($entity_type, $bundle_name, $field_name) {
+  if ($instance = field_info_instance($entity_type, $field_name, $bundle_name)) {
+    module_invoke_all("nyulmc_delete_{$bundle_name}_featurized_field", $field_name);
+    field_delete_instance($instance);
+  }
+}
+
+/**
+ * Implements hook_element_info().
+ */
+function nyulmc_ood_core_element_info() {
+  $elements = array();
+  $elements['link_field'] = array(
+    '#process' => array('nyulmc_ood_process_link'),
+  );
+  return $elements;
+}
+
+/**
+ * Since the Link module does not provide an easy way to set the label of the
+ * URL field, we change the label based on the field name using hook_element_info
+ * and the #process option.
+ *
+ * @param $element
+ * @param $form_state
+ * @param $complete_form
+ * @return mixed
+ */
+function nyulmc_ood_process_link($element, $form_state, $complete_form) {
+  $field_name = $element['#field_name'];
+  switch($field_name){
+    case 'field_fund_sidebar_link':
+      $element['url']['#title'] = t('Sidebar link');
+      break;
+    case 'field_fund_campaign_button_title':
+      unset($element['title']['#description']);
+      break;
+    case 'field_175_hero_button_title':
+      unset($element['title']['#description']);
+      $element['url']['#title'] = t('Fund ID');
+      break;
+    case 'field_175_get_inv_cta_link_title':
+    case 'field_home_get_inv_feat_link_t':
+    case 'field_home_feat_st_link':
+      unset($element['title']['#description']);
+      $element['url']['#title'] = t('Link');
+      break;
+  }
+  return $element;
+}

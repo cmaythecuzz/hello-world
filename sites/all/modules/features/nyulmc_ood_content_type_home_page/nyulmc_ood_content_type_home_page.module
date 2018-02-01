@@ -1,0 +1,55 @@
+<?php
+
+include_once 'nyulmc_ood_content_type_home_page.features.inc';
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $form_id
+ */
+function nyulmc_ood_content_type_home_page_form_home_page_node_form_alter(&$form, &$form_state, $form_id) {
+
+  $singleton_exists = nyulmc_ood_core_node_type_exists('home_page', $form['nid']['#value']);
+
+  if($singleton_exists){
+
+    drupal_set_message(t('A published Home Page Already Exists. <a href="' . base_path() . 'node/' . $singleton_exists . '/edit">Click here</a> to edit that node.'), 'warning');
+
+    drupal_set_message(t('If you publish a new home page, the existing version will be unpublished.'), 'warning');
+  }
+  $form['field_home_sticky_date_of_reset']['und'][0]['value']["#description"] = 'Last reset: ' . date('M d Y, H:i', $form['field_home_sticky_date_of_reset']['und'][0]['value']['#default_value']). '<br />' . $form['field_home_sticky_date_of_reset']['und'][0]['value']["#description"];
+}
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_home_page_post_features_revert($component) {
+
+  $fields_to_delete = array(
+    'field_video_title',
+    'field_video_image',
+    'field_impacts',
+    'group_home_page_featured_funds',
+    'field_featured_funds_title',
+    'field_featured_fund_1',
+    'field_featured_funds',
+    'field_featured_fund_6',
+    'field_home_sticky_link',
+    'field_home_sticky_header',
+    'field_home_sitcky_background'
+  );
+
+  // delete all fields that were excluded from the feature.
+  foreach ($fields_to_delete as $field) {
+    nyulmc_ood_core_delete_field_instance("node", "home_page", $field);
+  }
+
+  $to_delete_fc = array(
+    'field_home_get_inv_description',
+  );
+
+  // delete all fields that were excluded from the feature.
+  foreach ($to_delete_fc as $field) {
+    nyulmc_ood_core_delete_field_instance("field_collection_item", "field_home_get_involved_items", $field);
+  }
+}

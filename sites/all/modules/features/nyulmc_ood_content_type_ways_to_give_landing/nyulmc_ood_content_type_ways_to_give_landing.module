@@ -1,0 +1,29 @@
+<?php
+/**
+ * @file
+ * Code for the NYULMC OOD Content Type Ways to Give Landing feature.
+ */
+
+include_once 'nyulmc_ood_content_type_ways_to_give_landing.features.inc';
+
+function nyulmc_ood_content_type_ways_to_give_landing_form_ways_to_give_landing_node_form_alter(&$form, &$form_state, $form_id){
+
+  $singlteton_exists = nyulmc_ood_core_node_type_exists('ways_to_give_landing', $form['nid']['#value']);
+
+  if($singlteton_exists){
+
+    drupal_set_message(t('A published Ways to Give landing page already exists. <a href="' . base_path() . 'node/' . $singlteton_exists . '/edit">Click here</a> to edit that node.'), 'warning');
+
+    drupal_set_message(t('If you publish a new Ways to Give landing page, the existing version will be unpublished.'), 'warning');
+
+  }
+}
+
+/**
+ * Implements hook_post_features_revert().
+ */
+function nyulmc_ood_content_type_ways_to_give_landing_post_features_revert($component) {
+
+  // delete all fields that were excluded from the feature.
+  nyulmc_ood_core_delete_field_instance("field_collection_item", "field_wtg_body", "field_wtg_body_physical_address");
+}

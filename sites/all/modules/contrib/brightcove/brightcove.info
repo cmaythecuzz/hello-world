@@ -1,0 +1,27 @@
+name = Brightcove Video Connect
+description = Integration module for Brightcove Video Cloud
+core = 7.x
+package = Brightcove
+configure = admin/config/media/brightcove
+php = 5.x
+
+dependencies[] = ctools
+dependencies[] = entity
+dependencies[] = libraries
+dependencies[] = date
+dependencies[] = date_api
+dependencies[] = date_popup
+
+files[] = brightcove.module
+files[] = brightcove.admin.inc
+files[] = brightcove.video.inc
+files[] = brightcove.client.inc
+files[] = brightcove_field.migrate.inc
+files[] = brightcove.playlist.inc
+
+; Information added by Drupal.org packaging script on 2017-06-20
+version = "7.x-6.5"
+core = "7.x"
+project = "brightcove"
+datestamp = "1497969750"
+

@@ -1,0 +1,23 @@
+nyu\:stats {
+	display: table;
+	border: 0;
+	border-spacing: 0;
+	font-size: 0.857em;
+	margin: 10px auto;
+	width: 90%;
+}
+
+stat {
+	display: table-row;
+	background: #efefef;
+	background: rgba(0, 0, 0, 0.063);
+	vertical-align: inherit;
+	border-color: inherit;
+}
+
+value, description {
+	display: table-cell;
+	padding: 4px 9px;
+	border: 1px solid #fff;
+	text-align: left;
+}

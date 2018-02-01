@@ -1,0 +1,22 @@
+address.nyulmc_location {
+  padding: .25em 2em .25em 0em;
+  margin: 3em .2em 5em;
+  border: 1px solid #eee;
+  font-style: normal;
+  color: #CE5AC9;
+  font-style: normal;
+  font: normal 81.3%/1.538em "Lucida Grande", "Lucida Sans Unicode", sans-serif;
+}
+
+.nyulmc_location strong{
+  margin: .2em .2em .2em;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: #444;
+}
+
+.nyulmc_location a{
+  color: #444;
+  margin: .2em;
+  text-decoration: none;
+}

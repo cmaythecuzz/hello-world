@@ -1,0 +1,31 @@
+figure.nyulmc_caption {
+  border: 1px solid #eee;
+  display: inline-block;
+}
+
+figure.nyulmc_caption p {
+  border: 2px solid #ff9999;
+  background-color: #ffdddd;
+  padding: 3em;
+  min-height: 4em;
+  min-width: 3em;
+}
+
+figure.nyulmc_caption p:before {
+  content: '- Drop Media Here -';
+  margin-left: auto;
+  margin-right: auto;
+  color: red;
+  display: block;
+}
+
+figure.nyulmc_caption > p > img {
+  max-height: 640px;
+  max-width: 640px;
+}
+
+figure.nyulmc_caption figcaption {
+  font-style: italic;
+  color: #999;
+  padding: 1em 0em;
+}

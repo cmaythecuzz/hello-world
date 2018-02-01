@@ -1,0 +1,38 @@
+<?php
+/**
+ * @file
+ * Primary hook implementations for Metatag: NYULMC.
+ *
+ * This module enables custom metatag fields for NYULMC, using the metatag
+ * contrib module. See that module for more documentation and usage.
+ */
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function nyulmc_metatag_ctools_plugin_api($owner, $api) {
+  if ($owner == 'metatag' && $api == 'metatag') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function nyulmc_metatag_theme() {
+  $info['nyulmc_metatag'] = array(
+    'render element' => 'element',
+  );
+
+  return $info;
+}
+
+/**
+ * Theme callback for an nyulmc meta tag.
+ */
+function theme_nyulmc_metatag($variables) {
+  $element = &$variables['element'];
+  element_set_attributes($element, array('#name' => 'name', '#value' => 'content'));
+  unset($element['#value']);
+  return theme('html_tag', $variables);
+}

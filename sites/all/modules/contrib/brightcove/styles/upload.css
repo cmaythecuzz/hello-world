@@ -1,0 +1,5 @@
+#brightcove-field-upload-form .ahah-progress,
+#brightcove-field-edit-form .ahah-progress
+{
+  float: none;
+}
