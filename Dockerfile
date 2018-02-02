@@ -1,8 +1,6 @@
 FROM    ubuntu:latest
-MAINTAINER Ricardo Amaro <mail_at_ricardoamaro.com>
-RUN echo "deb http://archive.ubuntu.com/ubuntu raring main restricted universe multiverse" > /etc/apt/sources.list
-RUN apt-get update
-#RUN apt-get -y upgrade
+RUN apt-get -y update
+
 
 # Keep upstart from complaining
 RUN dpkg-divert --local --rename --add /sbin/initctl
