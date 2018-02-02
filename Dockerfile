@@ -7,7 +7,7 @@ RUN dpkg-divert --local --rename --add /sbin/initctl
 
 
 # Basic Requirementsphp7
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install mysql-server mysql-client nginx -fpm php pwgen python-setuptools curl git unzip
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install mysql-server mysql-client nginx php pwgen python-setuptools curl git unzip
 
 # Drupal Requirements
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install memcached drush mc
