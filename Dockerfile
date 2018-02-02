@@ -37,7 +37,7 @@ ADD ./supervisord.conf /etc/supervisord.conf
 RUN rm -rf /var/www/ 
 #; cd /var ; drush dl drupal ; mv /var/drupal*/ /var/www/
 COPY . /var/www/
-COPY sites/default/settings.php.bak /var/www/sites/default/settings.php
+#COPY sites/default/settings.php.bak /var/www/sites/default/settings.php
 RUN chmod a+w /var/www/sites/default ; mkdir /var/www/sites/default/files ; chown -R www-data:www-data /var/www/
 
 # Drupal Initialization and Startup Script
