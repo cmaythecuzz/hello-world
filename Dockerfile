@@ -1,50 +1,80 @@
-FROM    ubuntu:latest
-RUN apt-get -y update
+FROM phusion/baseimage
+MAINTAINER Thiago Taranto <ttaranto@gmail.com>
 
+# ensure UTF-8
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
 
-# Keep upstart from complaining
-RUN dpkg-divert --local --rename --add /sbin/initctl
+# change resolv.conf
+RUN echo 'nameserver 8.8.8.8' >> /etc/resolv.conf
 
+# setup
+ENV HOME /root
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 
-# Basic Requirementsphp7
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install mysql-server mysql-client nginx php pwgen python-setuptools curl git unzip
+CMD ["/sbin/my_init"]
 
-# Drupal Requirements
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install memcached drush mc
+# nginx-php installation
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y upgrade
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update --fix-missing
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install php7.0
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install php7.0-fpm php7.0-common php7.0-cli php7.0-mysqlnd php7.0-mcrypt php7.0-curl php7.0-bcmath php7.0-mbstring php7.0-soap php7.0-xml php7.0-zip php7.0-json php7.0-imap php-xdebug php-pgsql
 
+# install nginx (full)
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y nginx-full
+
+# install latest version of nodejs
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y nodejs
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y npm
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y git
+
+# install yarn
+RUN DEBIAN_FRONTEND="noninteractive" curl -sSL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN DEBIAN_FRONTEND="noninteractive" echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get install yarn
+
+# install php composer
+RUN curl -sS https://getcomposer.org/installer | php
+RUN mv composer.phar /usr/local/bin/composer
+
+# add build script (also set timezone to Americas/Sao_Paulo)
+RUN mkdir -p /root/setup
+ADD build/setup.sh /root/setup/setup.sh
+RUN chmod +x /root/setup/setup.sh
+RUN (cd /root/setup/; /root/setup/setup.sh)
+
+# copy files from repo
+ADD build/nginx.conf /etc/nginx/sites-available/default
+ADD build/.bashrc /root/.bashrc
+
+# disable services start
+RUN update-rc.d -f apache2 remove
+RUN update-rc.d -f nginx remove
+RUN update-rc.d -f php7.0-fpm remove
+
+# add startup scripts for nginx
+ADD build/nginx.sh /etc/service/nginx/run
+RUN chmod +x /etc/service/nginx/run
+
+# add startup scripts for php7.0-fpm
+ADD build/phpfpm.sh /etc/service/phpfpm/run
+RUN chmod +x /etc/service/phpfpm/run
+
+# set WWW public folder
+RUN mkdir -p /var/www/public
+ADD build/index.php /var/www/public/index.php
+
+RUN chown -R www-data:www-data /var/www
+RUN chmod 755 /var/www
+
+# set terminal environment
+ENV TERM=xterm
+
+# port and settings
+EXPOSE 80 9000
+
+# cleanup apt and lists
 RUN apt-get clean
-
-# Make mysql listen on the outside
-RUN sed -i "s/^bind-address/#bind-address/" /etc/mysql/my.cnf
-
-# nginx config
-RUN sed -i -e"s/keepalive_timeout\s*65/keepalive_timeout 2/" /etc/nginx/nginx.conf
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
-
-# php-fpm config
-#RUN sed -i -e "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g" /etc/php5/fpm/php.ini
-#RUN sed -i -e "s/;daemonize\s*=\s*yes/daemonize = no/g" /etc/php5/fpm/php-fpm.conf
-#RUN find /etc/php5/cli/conf.d/ -name "*.ini" -exec sed -i -re 's/^(\s*)#(.*)/\1;\2/g' {} \;
-
-# nginx site conf
-ADD ./nginx-site.conf /etc/nginx/sites-available/default
-
-# Supervisor Config
-RUN /usr/bin/easy_install supervisor
-ADD ./supervisord.conf /etc/supervisord.conf
-
-# Retrieve drupal
-RUN rm -rf /var/www/ 
-#; cd /var ; drush dl drupal ; mv /var/drupal*/ /var/www/
-COPY . /var/www/
-#COPY sites/default/settings.php.bak /var/www/sites/default/settings.php
-RUN chmod a+w /var/www/sites/default ; mkdir /var/www/sites/default/files ; chown -R www-data:www-data /var/www/
-
-# Drupal Initialization and Startup Script
-ADD ./start.sh /start.sh
-RUN chmod 755 /start.sh
-
-# private expose
-EXPOSE 80
-
-CMD ["/bin/bash", "/start.sh"]
+RUN apt-get autoclean
