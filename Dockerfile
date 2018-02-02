@@ -57,12 +57,10 @@ RUN update-rc.d -f php7.0-fpm remove
 # add startup scripts for nginx
 ADD build/nginx.sh /etc/service/nginx/run
 RUN chmod +x /etc/service/nginx/run
-RUN /etc/service/nginx/run
 
 # add startup scripts for php7.0-fpm
 ADD build/phpfpm.sh /etc/service/phpfpm/run
 RUN chmod +x /etc/service/phpfpm/run
-RUN  /etc/service/phpfpm/run
 
 # set WWW public folder
 RUN mkdir -p /var/www/public
@@ -80,3 +78,7 @@ EXPOSE 80 9000
 # cleanup apt and lists
 RUN apt-get clean
 RUN apt-get autoclean
+
+# Start up 
+CMD ["/bin/bash", "/build/nginx.sh"]
+CMD ["/bin/bash", "/build/phpfpm.sh"]
